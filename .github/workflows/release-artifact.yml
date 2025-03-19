@@ -1,0 +1,49 @@
+name: Release Artifact
+
+on:
+  push:
+    tags:
+      - '*.*.*'
+
+jobs:
+  release:
+    runs-on: macos-15
+    
+    env:
+      DEVELOPER_DIR: /Applications/Xcode.app/Contents/Developer
+      NAME: "cradle"
+      ARTIFACT_BUNDLE: "cradle.artifactbundle"
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Show Xcode Version
+        run: xcodebuild -version
+      
+      - name: Build
+        run: swift build -c release --product ${NAME} --arch arm64 --arch x86_64
+
+      - name: Set env
+        run: echo "ARTIFACT_BUNDLE_PATH"=${ARTIFACT_BUNDLE}/${NAME}-${{ github.ref_name }}-macos/bin >> $GITHUB_ENV
+      
+      - name: Create Artifact Bundle
+        run: |
+          set -x
+          mkdir -p "${ARTIFACT_BUNDLE_PATH}"
+          sed "s/__VERSION__/${{ github.ref_name }}/g" info.json.template > "${ARTIFACT_BUNDLE}/info.json"
+          cp -f .build/apple/Products/Release/${NAME} "${ARTIFACT_BUNDLE_PATH}"
+          cp -f LICENSE "${ARTIFACT_BUNDLE}"
+          zip -yr - "${ARTIFACT_BUNDLE}" > ./${NAME}-macos.artifactbundle.zip
+      
+      - name: Compute Checksum
+        run: |
+          CHECKSUM=$(swift package compute-checksum ./${NAME}-macos.artifactbundle.zip)
+          echo $CHECKSUM
+          echo "CHECKSUM=${CHECKSUM}" >> $GITHUB_ENV
+      
+      - name: Create release
+        run: |
+          gh release create "${{ github.ref_name }}" "./${NAME}-macos.artifactbundle.zip" -t "${{ github.ref_name }}" -n "**checksum**: ${{ env.CHECKSUM }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

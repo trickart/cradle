@@ -1,0 +1,18 @@
+{
+  "schemaVersion": "1.0",
+  "artifacts": {
+    "cradle": {
+      "version": "__VERSION__",
+      "type": "executable",
+      "variants": [
+        {
+          "path": "cradle-__VERSION__-macos/bin/cradle",
+          "supportedTriples": [
+            "x86_64-apple-macosx",
+            "arm64-apple-macosx"
+          ]
+        }
+      ]
+    }
+  }
+}
